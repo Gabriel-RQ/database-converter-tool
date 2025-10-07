@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: Database Converter
+server:
+  port: 8081
