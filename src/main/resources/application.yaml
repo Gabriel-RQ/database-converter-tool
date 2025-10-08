@@ -3,3 +3,5 @@ spring:
     name: Database Converter
 server:
   port: 8081
+json:
+  path: ./conversion/data/
