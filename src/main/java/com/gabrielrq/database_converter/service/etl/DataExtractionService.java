@@ -80,7 +80,6 @@ public class DataExtractionService {
         }
     }
 
-
     private DatabaseDefinition parseMetadata(String dbName, Connection connection) throws SQLException {
         DatabaseMetaData metadata = connection.getMetaData();
         var catalog = connection.getCatalog();
