@@ -27,7 +27,9 @@ public class DatabaseConnectionService {
     }
 
     public Connection createConnection(DbConnectionConfigDTO config) throws SQLException {
-        return createDataSource(config).getConnection();
+        Connection connection = createDataSource(config).getConnection();
+        connection.setAutoCommit(false);
+        return connection;
     }
 
 }

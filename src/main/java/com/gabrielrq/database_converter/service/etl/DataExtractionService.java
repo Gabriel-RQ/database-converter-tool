@@ -22,6 +22,10 @@ public class DataExtractionService {
 
     @Value("${migration.extract.threads:0}")
     private int threadPoolSize;
+    @Value("${migration.extract.threadBatchSize:0}")
+    private int threadBatchSize;
+    @Value("${migration.extract.fetchSize:0}")
+    private int fetchSize;
 
     private final DatabaseConnectionService databaseConnectionService;
     private final JsonService jsonService;
@@ -37,11 +41,16 @@ public class DataExtractionService {
 
         int availableProcessors = Runtime.getRuntime().availableProcessors();
         int poolSize = threadPoolSize > 0 ? threadPoolSize : Math.max(1, availableProcessors * 2);
+        int batchSize = Math.min(threadBatchSize > 0 ? threadBatchSize : Math.max(1, Math.round(poolSize / 2.0f)), poolSize);
 
         try (ExecutorService executor = Executors.newFixedThreadPool(poolSize)) {
+            Semaphore semaphore = new Semaphore(batchSize);
             List<Future<?>> futures = new ArrayList<>();
             Map<String, Throwable> failedTables = new ConcurrentHashMap<>();
+
             for (TableDefinition table : metadata.tables()) {
+                semaphore.acquire();
+
                 futures.add(
                         executor.submit(() -> {
                             String schema = table.schema();
@@ -57,11 +66,13 @@ public class DataExtractionService {
                                     Connection connection = databaseConnectionService.createConnection(config);
                                     Statement stmt = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
                             ) {
-                                stmt.setFetchSize(1000);
+                                stmt.setFetchSize(fetchSize);
                                 ResultSet rs = stmt.executeQuery(sql);
-                                jsonService.writeStreamGz(rs, outputPath.resolve(fullTableName).toString());
+                                jsonService.writeStream(rs, outputPath.resolve(fullTableName).toString());
                             } catch (SQLException e) {
                                 failedTables.put(tableName, e);
+                            } finally {
+                                semaphore.release();
                             }
                         })
                 );
