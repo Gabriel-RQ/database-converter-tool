@@ -7,4 +7,6 @@ migration:
   json:
     path: ./migration/data/
   extract:
-    threads: 8
+    threads: 12
+    threadBatchSize: 4
+    fetchSize: 500
