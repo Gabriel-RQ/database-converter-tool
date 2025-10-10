@@ -41,10 +41,6 @@ public class DataTransformationService {
         return databaseBuilder.build();
     }
 
-    private void generateSQL(DatabaseDefinition metadata) {
-        sqlService.generateDDL(metadata);
-    }
-
     public DatabaseDefinition transform(DatabaseDefinition metadata, String target) {
         try {
             Map<Integer, String> targetConversioMap = jsonService.readConversionMap(target);
@@ -52,7 +48,7 @@ public class DataTransformationService {
             Path outputPath = Path.of(metadata.name());
             jsonService.write(targetMetadata, outputPath.resolve("target.meta").toString());
 
-            generateSQL(targetMetadata);
+            sqlService.generate(targetMetadata);
 
             return targetMetadata;
         } catch (IOException e) {
