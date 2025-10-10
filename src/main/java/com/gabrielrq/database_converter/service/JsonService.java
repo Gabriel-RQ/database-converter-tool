@@ -24,8 +24,8 @@ import java.util.Map;
 @Service
 public class JsonService {
 
-    @Value("${migration.json.path}")
-    private String path;
+    @Value("${migration.data.path}")
+    private String basePath;
     @Value("${migration.transform.maps.path}")
     private String conversionMapsPath;
 
@@ -36,7 +36,7 @@ public class JsonService {
     }
 
     public void write(Object object, String filename) {
-        Path outputDir = Path.of(path);
+        Path outputDir = Path.of(basePath);
         Path outputFile = outputDir.resolve(filename + ".json");
         try {
             Files.createDirectories(outputFile.getParent());
@@ -50,7 +50,7 @@ public class JsonService {
     }
 
     public void writeStream(ResultSet rs, String filename) {
-        Path outputDir = Path.of(path);
+        Path outputDir = Path.of(basePath);
         Path outputFile = outputDir.resolve(filename + ".json");
 
         try {
