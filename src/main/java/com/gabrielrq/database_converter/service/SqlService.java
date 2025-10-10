@@ -1,5 +1,6 @@
 package com.gabrielrq.database_converter.service;
 
+import com.gabrielrq.database_converter.domain.ColumnDefinition;
 import com.gabrielrq.database_converter.domain.DatabaseDefinition;
 import com.gabrielrq.database_converter.domain.TableDefinition;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +14,8 @@ import java.nio.file.Path;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class SqlService {
@@ -30,8 +33,48 @@ public class SqlService {
         this.jsonService = jsonService;
     }
 
-    public void generateDML(DatabaseDefinition metadata) {
+    public void write(Path path, String content) {
+        try {
+            Files.createDirectories(path.getParent());
 
+            try (
+                    FileWriter fw = new FileWriter(path.toFile());
+                    BufferedWriter writer = new BufferedWriter(fw)
+            ) {
+                writer.write(content);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e); // // lançar excessão personalizada a ser tratada pela aplicação
+        }
+    }
+
+    public void generate(DatabaseDefinition metadata) {
+        generateDDL(metadata);
+        generateDML(metadata);
+    }
+
+    public void generateDML(DatabaseDefinition metadata) {
+        Path outDir = Path.of(basePath).resolve(metadata.name()).resolve(dmlPath);
+        Path tablesPath = Path.of(basePath).resolve(metadata.name()).resolve("tables");
+
+        for (var table : metadata.tables()) {
+            StringBuilder dmlBuilder = new StringBuilder()
+                    .append("INSERT INTO ")
+                    .append(table.schema())
+                    .append(".")
+                    .append(table.name())
+                    .append(" (");
+
+            String columns = String.join(",", table.columns().stream().map(ColumnDefinition::name).toList());
+            dmlBuilder
+                    .append(columns)
+                    .append(") VALUES\n");
+
+            generateDMLData(table, tablesPath, dmlBuilder);
+
+            dmlBuilder.append(";");
+            write(outDir.resolve(table.schema() + "." + table.name() + ".sql"), dmlBuilder.toString());
+        }
     }
 
     public void generateDDL(DatabaseDefinition metadata) {
@@ -55,6 +98,30 @@ public class SqlService {
 
             ddlBuilder.append("\n);");
             write(outDir.resolve(table.schema() + "." + table.name() + ".sql"), ddlBuilder.toString());
+        }
+    }
+
+    private void generateDMLData(TableDefinition table, Path tablesPath, StringBuilder dmlBuilder) {
+        List<String> dataDefinition = new ArrayList<>();
+        try {
+            List<Map<String, Object>> tableData = jsonService.readTableData(tablesPath.resolve(table.schema() + "." + table.name() + ".json"));
+            for (var data : tableData) {
+                String dataBuilder = "(" + data.values().stream().map(this::formatDMLValue).collect(Collectors.joining(",")) + ")";
+                dataDefinition.add("\t" + dataBuilder);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e); // lançar excessão personalizada a ser tratada pela aplicação
+        }
+        dmlBuilder.append(String.join(",\n", dataDefinition));
+    }
+
+    private String formatDMLValue(Object value) {
+        if (value == null) {
+            return "NULL";
+        } else if (value instanceof Number || value instanceof Boolean) {
+            return value.toString();
+        } else {
+            return "'" + value.toString().replace("'", "''") + "'";
         }
     }
 
@@ -117,20 +184,4 @@ public class SqlService {
 
         ddlBuilder.append(String.join(",\n", columnDefinitions));
     }
-
-    public void write(Path path, String content) {
-        try {
-            Files.createDirectories(path.getParent());
-
-            try (
-                    FileWriter fw = new FileWriter(path.toFile());
-                    BufferedWriter writer = new BufferedWriter(fw);
-            ) {
-                writer.write(content);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e); // // lançar excessão personalizada a ser tratada pela aplicação
-        }
-    }
-
 }
