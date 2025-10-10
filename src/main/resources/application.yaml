@@ -4,7 +4,7 @@ spring:
 server:
   port: 8081
 migration:
-  json:
+  data:
     path: ./migration/data/
   extract:
     threads: 12
@@ -13,3 +13,7 @@ migration:
   transform:
     maps:
       path: maps/
+    ddl:
+      path: ./ddl/
+    dml:
+      path: ./dml/
