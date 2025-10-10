@@ -10,15 +10,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -87,6 +85,13 @@ public class JsonService {
             }
         } catch (IOException | SQLException e) {
             throw new RuntimeException(e); // lançar excessão personalizada a ser tratada pela aplicação
+        }
+    }
+
+    public List<Map<String, Object>> readTableData(Path tablePath) throws IOException {
+        try (FileInputStream stream = new FileInputStream(tablePath.toString())) {
+            return mapper.readValue(stream, new TypeReference<List<Map<String, Object>>>() {
+            });
         }
     }
 
