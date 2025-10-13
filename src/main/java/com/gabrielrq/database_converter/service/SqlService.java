@@ -81,7 +81,6 @@ public class SqlService {
 
     public void generateDDL(DatabaseDefinition metadata) {
         // TODO melhorar definição das colunas (quanto aos tipos)
-        // TODO garantir ordem de criação das tabelas considerando dependências (com uma árvore de dependências talvez? grafo de dependências + topological sort?)
 
         Path outDir = Path.of(basePath).resolve(metadata.name()).resolve(ddlPath);
 
