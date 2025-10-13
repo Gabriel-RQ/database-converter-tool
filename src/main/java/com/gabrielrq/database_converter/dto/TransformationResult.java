@@ -7,6 +7,6 @@ import java.util.List;
 
 public record TransformationResult(
         DatabaseDefinition metadata,
-        List<TableDefinition> dependencies
+        List<TableDefinition> executionList
 ) {
 }
