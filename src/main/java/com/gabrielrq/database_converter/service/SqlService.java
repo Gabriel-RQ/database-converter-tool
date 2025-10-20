@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,16 +55,27 @@ public class SqlService {
             throw new FileNotFoundException("File '" + p + "' not found");
         }
 
+        return Files.readString(p);
+    }
+
+    public void bufferReadAndExec(Path path, Statement statement) throws IOException, SQLException {
+        Path p = Path.of(basePath).resolve(path);
+
+        if (!Files.exists(p)) {
+            throw new FileNotFoundException("File '" + p + "' not found");
+        }
+
         try (
                 FileReader fos = new FileReader(p.toFile());
                 BufferedReader br = new BufferedReader(fos)
         ) {
-            StringBuilder content = new StringBuilder();
             String line;
             while ((line = br.readLine()) != null) {
-                content.append(line).append(System.lineSeparator());
+                line = line.trim();
+                if (!line.isEmpty()) {
+                    statement.execute(line);
+                }
             }
-            return content.toString();
         }
     }
 
@@ -142,7 +155,10 @@ public class SqlService {
         } else if (value instanceof Number || value instanceof Boolean) {
             return value.toString();
         } else {
-            return "'" + value.toString().replace("'", "''") + "'";
+            String stringValue = value.toString()
+                    .replace("'", "''")
+                    .replaceAll("[\\u0000-\\u001F\\u007F]", ""); // Remove caracteres de controle
+            return "'" + stringValue + "'";
         }
     }
 
