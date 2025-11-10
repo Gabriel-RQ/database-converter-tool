@@ -1,0 +1,13 @@
+package com.gabrielrq.database_converter.enums;
+
+public enum EtlStep {
+    START,
+    EXTRACTION_IN_PROGRESS,
+    EXTRACTION_FINISHED,
+    TRANSFORMATION_IN_PROGRESS,
+    TRANSFORMATION_FINISHED,
+    WAITING_FOR_LOAD_CONFIRMATION,
+    LOAD_IN_PROGRESS,
+    FINISHED,
+    ERROR
+}
