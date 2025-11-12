@@ -3,6 +3,8 @@ package com.gabrielrq.database_converter.service;
 import com.gabrielrq.database_converter.domain.ColumnDefinition;
 import com.gabrielrq.database_converter.domain.DatabaseDefinition;
 import com.gabrielrq.database_converter.domain.TableDefinition;
+import com.gabrielrq.database_converter.dto.SqlDTO;
+import com.gabrielrq.database_converter.dto.SqlPageDTO;
 import com.gabrielrq.database_converter.exception.SqlException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -13,10 +15,9 @@ import java.nio.file.Path;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class SqlService {
@@ -59,23 +60,65 @@ public class SqlService {
         return Files.readString(p);
     }
 
+    public SqlPageDTO listDDL(String name, int page, int size) {
+        Path dir = Path.of(basePath).resolve(name).resolve(ddlPath);
+
+        List<SqlDTO> pageFiles = new ArrayList<>();
+        int total = 0;
+        int start = page * size;
+        int end = start + size;
+
+        try (Stream<Path> filesStream = Files.list(dir)) {
+            Iterator<Path> iterator = filesStream
+                    .filter(Files::isRegularFile)
+                    .filter(f -> f.toString().endsWith(".sql"))
+                    .sorted()
+                    .iterator();
+
+            while (iterator.hasNext()) {
+                Path path = iterator.next();
+                if (total >= start && total < end) {
+                    String content = Files.readString(path);
+                    pageFiles.add(new SqlDTO(path.getFileName().toString(), content));
+                }
+                total++;
+            }
+
+            return new SqlPageDTO(page, size, total, pageFiles);
+
+        } catch (IOException e) {
+            throw new SqlException("Erro ao listar arquivos. Detalhes: " + e.getMessage());
+        }
+    }
+
+    public void updateDDL(String name, String filename, String content) {
+        Path path = Path.of(basePath).resolve(name).resolve(ddlPath).resolve(filename);
+        write(path, content);
+    }
+
     public void bufferReadAndExec(Path path, Statement statement) throws IOException, SQLException {
         Path p = Path.of(basePath).resolve(path);
 
         if (!Files.exists(p)) {
-            throw new FileNotFoundException("File '" + p + "' not found");
+            throw new FileNotFoundException("Arquivo '" + p + "' não encontrado.");
         }
 
-        try (
-                FileReader fos = new FileReader(p.toFile());
-                BufferedReader br = new BufferedReader(fos)
-        ) {
+        try (BufferedReader br = Files.newBufferedReader(p)) {
+            StringBuilder sqlBlock = new StringBuilder();
             String line;
             while ((line = br.readLine()) != null) {
                 line = line.trim();
-                if (!line.isEmpty()) {
-                    statement.execute(line);
+                if (line.isEmpty() || line.startsWith("--")) continue;
+                sqlBlock.append(line).append(" ");
+
+                if (line.endsWith(";")) {
+                    statement.execute(sqlBlock.toString());
+                    sqlBlock.setLength(0);
                 }
+            }
+
+            if (!sqlBlock.isEmpty()) {
+                statement.execute(sqlBlock.toString());
             }
         }
     }
