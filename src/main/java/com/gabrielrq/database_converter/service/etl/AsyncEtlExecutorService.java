@@ -80,7 +80,6 @@ public class AsyncEtlExecutorService {
         try {
             loadingService.load(req.targetConfig(), new TransformationResult(status.getMetadata(), status.getExecutionOrder()));
             status.setStep(EtlStep.LOAD_FINISHED);
-            status.setFinishedAt(LocalDateTime.now());
             statusRepository.save(status);
         } catch (Exception e) {
             status.setStep(EtlStep.ERROR);
