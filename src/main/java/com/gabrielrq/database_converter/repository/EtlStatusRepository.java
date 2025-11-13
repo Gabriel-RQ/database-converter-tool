@@ -2,6 +2,7 @@ package com.gabrielrq.database_converter.repository;
 
 
 import com.gabrielrq.database_converter.domain.MigrationStatus;
+import com.gabrielrq.database_converter.exception.NonExistentMigrationException;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -20,6 +21,9 @@ public class EtlStatusRepository {
     }
 
     public MigrationStatus find(UUID id) {
+        if (!repo.containsKey(id)) {
+            throw new NonExistentMigrationException("Migração com ID '" + id + "' não encontrada.");
+        }
         return repo.get(id);
     }
 }
