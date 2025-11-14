@@ -52,24 +52,24 @@ public class DataExtractionService {
 
                 futures.add(
                         executor.submit(() -> {
-                            String schema = table.schema();
-                            String tableName = table.name();
+//                            String schema = table.schema();
+//                            String tableName = table.name();
 
-                            String fullTableName = (schema != null && !schema.isBlank())
-                                    ? schema + "." + tableName
-                                    : tableName;
+//                            String fullTableName = (schema != null && !schema.isBlank())
+//                                    ? schema + "." + tableName
+//                                    : tableName;
 
 
-                            String sql = "SELECT * FROM " + fullTableName;
+                            String sql = "SELECT * FROM " + table.name();
                             try (
                                     Connection connection = DatabaseConnectionService.createConnection(config);
                                     Statement stmt = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
                             ) {
                                 stmt.setFetchSize(fetchSize);
                                 ResultSet rs = stmt.executeQuery(sql);
-                                jsonService.writeStream(rs, outputPath.resolve("tables/" + fullTableName).toString());
+                                jsonService.writeStream(rs, outputPath.resolve("tables/" + table.name()).toString());
                             } catch (SQLException e) {
-                                failedTables.put(tableName, e);
+                                failedTables.put(table.name(), e);
                             } finally {
                                 semaphore.release();
                             }
