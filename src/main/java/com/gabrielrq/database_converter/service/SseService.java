@@ -51,4 +51,9 @@ public class SseService {
         } catch (NonExistingSseEmitterException ignored) {
         }
     }
+
+    public void sendSseCompletion(UUID id) {
+        SseEmitter emitter = sseEmitterRepository.find(id);
+        emitter.complete();
+    }
 }
